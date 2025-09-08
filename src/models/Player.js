@@ -1,0 +1,30 @@
+class Player {
+  constructor(id, name, isGameMaster = false, socketId = null) {
+    this.id = id;
+    this.name = name;
+    this.score = 0;
+    this.attempts = 0;
+    this.hasAnswered = false;
+    this.isGameMaster = isGameMaster;
+    this.socketId = socketId;
+  }
+
+  resetForNewRound() {
+    this.attempts = 0;
+    this.hasAnswered = false
+  }
+
+  addScore(points) {
+    this.score += points;
+  }
+
+  canGuess(maxAttempt = 3) {
+    return this.attempts < maxAttempts && !this.hasAnswered;
+  }
+
+  recordGuess() {
+    this.attempts += 1;
+  }
+}
+
+module.exports = Player;
