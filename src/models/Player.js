@@ -6,7 +6,7 @@ class Player {
     this.attempts = 0;
     this.hasAnswered = false;
     this.isGameMaster = isGameMaster;
-    this.socketId = socketId;
+    this.socketId = socketId || id;
   }
 
   resetForNewRound() {
@@ -18,7 +18,7 @@ class Player {
     this.score += points;
   }
 
-  canGuess(maxAttempt = 3) {
+  canGuess(maxAttempts = 3) {
     return this.attempts < maxAttempts && !this.hasAnswered;
   }
 

@@ -30,6 +30,22 @@ class GameSession {
   canStartGame() {
     return this.getPlayerCount() >= 2 && this.status === "waiting"
   }
+
+   getPlayer(playerId) {
+    return this.players.get(playerId);
+  }
+
+  removePlayer(playerId) {
+    return this.players.delete(playerId);
+  }
+
+  getPlayersList() {
+    return Array.from(this.players.values());
+  }
+
+  isPlayerInSession(playerId) {
+    return this.players.has(playerId);
+  }
 }
 
 module.exports = GameSession;
