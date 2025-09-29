@@ -75,5 +75,46 @@ module.exports = (socket, io) => {
     } catch (error) {
       socket.emit("error", { message: error.message });
     }
-  })
+  });
+
+  socket.on("reconnect-game", () => {
+    try {
+      const sessionId = GameService.playerSessions.get(socket.id);
+      const session = GameService.getSession(sessionId);
+
+      if (session) {
+        socket.join(sessionId);
+        socket.emit("game-reconnected", {
+          status: session.status,
+          question: session.currentQuestion,
+          timeRemaining: session.timeRemaining,
+          players: GameService.getPlayersData(session)
+        })
+      }
+    } catch (error) {
+      socket.emit("error", { message: error.message });
+    }
+  });
+
+  socket.on("force-end-game", () => {
+    try {
+      const session = GameService.getSessionByMasterId(socket.id);
+      if (!session) throw new Error("Not a game master");
+      
+      GameService.endGameByTimeout(session.id, io);
+    } catch (error) {
+      socket.emit("error", { message: error.message });
+    }
+  });
+
+  socket.on("skip-to-next-round", () => {
+    try {
+      const session = GameService.getSessionByMasterId(socket.id);
+      if (!session) throw new Error("Not a game master");
+      
+      GameService.prepareNextRound(session.id, io);
+    } catch (error) {
+      socket.emit("error", { message: error.message });
+    }
+  });
 }
