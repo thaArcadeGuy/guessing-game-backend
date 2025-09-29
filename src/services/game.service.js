@@ -53,20 +53,20 @@ class GameService {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
-    const timer = setInterval(() => {
+    const tick = () => {
       session.timeRemaining--;
 
-      // Broadcast time update to all players in session
       io.to(sessionId).emit("timer-update", {
         timeRemaining: session.timeRemaining
       });
 
       if (session.timeRemaining <= 0) {
         this.endGameByTimeout(sessionId, io);
+      } else {
+        this.gameTimers.set(sessionId, setTimeout(tick, 1000));
       }
-    }, 1000);
-
-    this.gameTimers.set(sessionId, timer);
+    }
+    this.gameTimers.set(sessionId, setTimeout(tick, 1000));
   }
 
   endGameByTimeout(sessionId, io) {
@@ -257,14 +257,14 @@ class GameService {
   }
 
   getPlayersData(session) {
-    return Array.from(session.players.values().map(player => ({
+    return Array.from(session.players.values()).map(player => ({
       id: player.id,
       name: player.name,
       score: player.score,
       attempts: player.attempts,
       hasAnswered: player.hasAnswered,
       isGameMaster: player.isGameMaster
-    })));
+    }));
   }
 }
 
