@@ -1,13 +1,20 @@
 const GameService = require("../services/game.service");
 
+function validateGameInputs(question, answer) {
+  if (!question?.trim() || question.trim().length < 5) {
+    throw new Error("Question must be at least 5 characters");
+  }
+  if (!answer?.trim() || answer.trim().length < 1) {
+    throw new Error("Answer cannot be empty");
+  }
+}
+
 module.exports = (socket, io) => {
   socket.on("start-game", (data) => {
     try {
       const { question, answer } = data;
 
-      if (!question?.trim() || !answer?.trim()) {
-        throw new Error("Question and answer are required");
-      }
+      validateGameInputs(question, answer);
 
       // Find which session this player is master of
       const sessionId = Array.from(GameService.sessions.entries())
