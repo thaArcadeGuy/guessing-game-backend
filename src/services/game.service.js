@@ -266,6 +266,15 @@ class GameService {
       isGameMaster: player.isGameMaster
     }));
   }
+
+  getSessionByMasterId(masterId) {
+    for (const [sessionId, session] of this.sessions.entries()) {
+      if (session.masterId === masterId) {
+        return session;
+      }
+    }
+    return null;
+  }
 }
 
 module.exports = new GameService();

@@ -13,8 +13,11 @@ module.exports = (socket, io) => {
   socket.on("start-game", (data) => {
     try {
       const { question, answer } = data;
-
       validateGameInputs(question, answer);
+
+      const session = GameService.getSessionByMasterId(socket.id);
+      if (!session) 
+        throw new Error("You are not a game master of any session");
 
       // Find which session this player is master of
       const sessionId = Array.from(GameService.sessions.entries())
@@ -24,7 +27,7 @@ module.exports = (socket, io) => {
         throw new Error("You are not a game master of any session");
       }
 
-      const session = GameService.startGame(sessionId, question, answer, io);
+      GameService.startGame(sessionId, question, answer, io);
 
       io.to(sessionId).emit("game-started", {
         question: session.currentQuestion,
