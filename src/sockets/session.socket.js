@@ -1,6 +1,12 @@
 const GameService = require("../services/game.service");
 const SessionService = require("../services/session.service");
 
+function safeCallback(callback, data) {
+  if (callback && typeof callback === "function") {
+    callback(data);
+  }
+}
+
 module.exports = (io, socket) => {
   console.log(`🔌 Session socket handlers registered for: ${socket.id}`);
 
@@ -30,22 +36,20 @@ module.exports = (io, socket) => {
       console.log("Players:", session.getPlayerCount());
 
       // Send response back via callback
-      if (callback) {
-        callback({
-          sessionId: session.id,
-          session: {
-            id: session.id,
-            status: session.status,
-            masterId: session.masterId,
-            players: Array.from(session.players.values()).map(player => ({
-              id: player.id,
-              name: player.name,
-              score: player.score,
-              isGameMaster: player.isGameMaster
-            }))
-          }
-        });
-      }
+      safeCallback(callback, {
+        sessionId: session.id,
+        session: {
+          id: session.id,
+          status: session.status,
+          masterId: session.masterId,
+          players: Array.from(session.players.values()).map(player => ({
+            id: player.id,
+            name: player.name,
+            score: player.score,
+            isGameMaster: player.isGameMaster
+          }))
+        }
+      });
 
       socket.emit("session-created", {
         sessionId: session.id,
@@ -53,11 +57,7 @@ module.exports = (io, socket) => {
       })
     } catch (error) {
       console.log("Error creating session:", error);
-      if (callback) {
-        callback({ error: error.message });
-      } else {
-        socket.emit("error", { message: error.message });
-      }
+      safeCallback(callback, { error: error.message });
     }
   });
 
@@ -73,20 +73,18 @@ module.exports = (io, socket) => {
       socket.join(normalizedSessionId);
 
       // Send response to the joining player
-      if (callback) {
-        callback({
-          session: {
-            id: session.id,
-            status: session.status,
-            players: Array.from(session.players.values()).map(player => ({
-              id: player.id,
-              name: player.name,
-              score: player.score,
-              isGameMaster: player.isGameMaster
-            }))
-          }
-        });
-      }
+      safeCallback(callback, {
+        session: {
+          id: session.id,
+          status: session.status,
+          players: Array.from(session.players.values()).map(player => ({
+            id: player.id,
+            name: player.name,
+            score: player.score,
+            isGameMaster: player.isGameMaster
+          }))
+        }
+      });
 
       // Notify all players in session
       io.to(normalizedSessionId).emit("player-joined", {
@@ -100,11 +98,7 @@ module.exports = (io, socket) => {
       });
     } catch (error) {
       console.log("Error joining session:", error);
-      if (callback) {
-        callback({ error: error.message });
-      } else {
-        socket.emit("error", { message: error.message });
-      }
+      safeCallback(callback, { error: error.message });
     }
   });
 
@@ -144,19 +138,10 @@ module.exports = (io, socket) => {
     try {
       const sessions = SessionService.getAllSessions();
       console.log('📋 Sessions available:', sessions.map(s => s.id));
-
-      if (callback && typeof callback === "function") {
-        callback({ sessions });
-      } else {
-        socket.emit("sessions-list", { sessions })
-      }
+      safeCallback(callback, { sessions });
     } catch (error) {
       console.log("Error listing sessions:", error);
-      if (callback && typeof callback === "function") {
-        callback({ error: error.message });
-      } else {
-        socket.emit("error", { message: error.message });
-      }
+      safeCallback(callback, { sessions });
     }
   })
 }
