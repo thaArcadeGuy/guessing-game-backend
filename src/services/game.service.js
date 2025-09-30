@@ -215,21 +215,23 @@ class GameService {
   }
 
   cleanupSession(sessionId) {
-    this.clearGameTimer(sessionId);
-    this.sessions.delete(sessionId);
+    const normalizedSessionId = sessionId.toLowerCase();
+    this.clearGameTimer(normalizedSessionId);
+    this.sessions.delete(normalizedSessionId);
 
-    SessionService.sessions.delete(sessionId);
+    SessionService.sessions.delete(normalizedSessionId);
 
     // Remove all players from this session
     for (const [playerId, playerSessionId] of this.playerSessions.entries()) {
-      if (playerSessionId === sessionId) {
+      if (playerSessionId === normalizedSessionId) {
         this.playerSessions.delete(playerId);
       }
     } 
   }
 
   getSession(sessionId) {
-    return this.sessions.get(sessionId);
+    const normalizedSessionId = sessionId.toLowerCase();
+    return this.sessions.get(normalizedSessionId);
   }
 
   removePlayer(playerId, io) {
