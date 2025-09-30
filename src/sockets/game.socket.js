@@ -9,7 +9,7 @@ function validateGameInputs(question, answer) {
   }
 }
 
-module.exports = (socket, io) => {
+module.exports = (io, socket) => {
   socket.on("start-game", (data) => {
     try {
       const { question, answer } = data;

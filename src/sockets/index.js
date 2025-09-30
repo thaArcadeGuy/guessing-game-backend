@@ -76,12 +76,12 @@ function setupSockets(server) {
     });
   });
 
-  const adminNamespace = io.of('/admin');
-  adminNamespace.on('connection', (socket) => {
-    console.log('Admin connected:', socket.id);
+  const adminNamespace = io.of("/admin");
+  adminNamespace.on("connection", (socket) => {
+    console.log("Admin connected:", socket.id);
     
-    socket.on('get-stats', () => {
-      socket.emit('stats', {
+    socket.on("get-stats", () => {
+      socket.emit("stats", {
         connectedUsers: connectedUsers.size,
         timestamp: new Date().toISOString()
       });

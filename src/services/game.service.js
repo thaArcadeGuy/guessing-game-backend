@@ -152,7 +152,7 @@ class GameService {
       player.addScore(10);
 
       // End game immediately - winner found!
-      this.endGameByWin(sessionId, player,io);
+      this.endGameByWin(sessionId, player, io);
 
       return { correct: true, winner: player };
     }
