@@ -1,4 +1,4 @@
-const GameService = require('../services/game.service');
+const GameService = require("../services/game.service");
 
 // Enhanced mock IO with better logging
 const mockIO = {
@@ -10,7 +10,7 @@ const mockIO = {
   })
 };
 
-console.log('🎮 Starting Game Logic Tests...\n');
+console.log("🎮 Starting Game Logic Tests...\n");
 
 async function runAllTests() {
   try {
@@ -21,9 +21,9 @@ async function runAllTests() {
     await testTimeoutScenario();
     await testMultiplePlayers();
     
-    console.log('\n🎉 All game logic tests completed!');
+    console.log("\n🎉 All game logic tests completed!");
   } catch (error) {
-    console.error('❌ Test suite failed:', error);
+    console.error("❌ Test suite failed:", error);
   }
 }
 
@@ -135,7 +135,7 @@ async function testWinnerScenario() {
   if (result.correct && result.winner) {
     console.log(`   ✅ ${result.winner.name} won with score: ${result.winner.score}`);
     
-    // Verify Bob's score increased
+    // Verify Bob"s score increased
     const bob = session.players.get("p1");
     if (bob.score === 10) {
       console.log("   ✅ Score correctly increased to 10");
@@ -184,7 +184,7 @@ async function testMultiplePlayers() {
   
   // Test that only game master can start
   try {
-    // This should fail if we try as non-master (but our service doesn't check sender)
+    // This should fail if we try as non-master (but our service doesn"t check sender)
     GameService.startGame(session.id, "Test?", "answer", mockIO);
     console.log("   ✅ Game started with multiple players");
   } catch (error) {
