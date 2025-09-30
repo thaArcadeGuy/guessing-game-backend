@@ -284,6 +284,66 @@ class GameService {
     }));
   }
 
+  handlePlayerDisconnect(playerId, io) {
+    try {
+      console.log(`🔌 Handling disconnect for player: ${playerId}`);
+      const sessionId = this.playerSessions.get(playerId);
+      
+      if (!sessionId) {
+        console.log("No session found for disconnected player");
+        return;
+      }
+
+      const session = this.sessions.get(sessionId);
+      if (!session) {
+        this.playerSessions.delete(playerId);
+        return;
+      }
+
+      // Remove player from session
+      const player = session.players.get(playerId);
+      if (player) {
+        session.players.delete(playerId);
+        this.playerSessions.delete(playerId);
+        console.log(`Removed player ${player.name} from session ${sessionId}`);
+      }
+
+      // If no players left, cleanup session
+      if (session.players.size === 0) {
+        this.cleanupSession(sessionId);
+        console.log(`Cleaned up empty session: ${sessionId}`);
+        return;
+      }
+
+      // If game master left during waiting, assign new master
+      if (player && player.isGameMaster && session.status === "waiting") {
+        const remainingPlayers = Array.from(session.players.values());
+        if (remainingPlayers.length > 0) {
+          remainingPlayers[0].isGameMaster = true;
+          session.masterId = remainingPlayers[0].id;
+          console.log(`New game master: ${remainingPlayers[0].name}`);
+          
+          // Notify players about new master
+          io.to(sessionId).emit("new-game-master", {
+            newMasterId: remainingPlayers[0].id,
+            newMasterName: remainingPlayers[0].name
+          });
+        }
+      }
+
+      // Notify remaining players
+      io.to(sessionId).emit("player-left", {
+        playerId: playerId,
+        playerName: player?.name,
+        playerCount: session.players.size,
+        players: this.getPlayersData(session)
+      });
+
+    } catch (error) {
+      console.error("Error in handlePlayerDisconnect:", error);
+    }
+  }
+
   getSessionByMasterId(masterId) {
     for (const [sessionId, session] of this.sessions.entries()) {
       if (session.masterId === masterId) {
