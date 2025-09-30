@@ -2,6 +2,13 @@ const GameService = require("../services/game.service");
 const SessionService = require("../services/session.service");
 
 module.exports = (io, socket) => {
+  console.log(`🔌 Session socket handlers registered for: ${socket.id}`);
+
+  // Add this to debug all incoming events
+  socket.onAny((eventName, ...args) => {
+    console.log(`📨 Incoming event: ${eventName}`, args);
+  });
+  
   socket.on("create-session", (data, callback) => {
     try {
       console.log("🎯 CREATE-SESSION event received on backend");
