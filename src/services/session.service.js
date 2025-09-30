@@ -12,7 +12,8 @@ class SessionService {
   leaveSession(sessionId, socketId) {
     const session = this.getSession(sessionId);
 
-    if (!session.players.has(socketId)) {
+    const player =session.players.get(socketId)
+    if (!player) {
       throw new Error("Player not in this session");
     }
 
@@ -41,13 +42,29 @@ class SessionService {
     return Array.from(this.sessions.values()).map(session => ({
       id: session.id,
       playerCount: session.players.size,
+      status: session.status,
+      masterName: session.players.get(session.masterId)?.name ||  "Unknown",
       createdAt: session.createdAt,
       gameStarted: session.gameStarted
     }));
   }
 
-   registerSession(session) {
+  registerSession(session) {
     this.sessions.set(session.id, session);
+  }
+
+  getSessionByPlayerId(playerId) {
+    for (const session of this.sessions.values()) {
+      if (session.players.has(playerId)) {
+        return session;
+      }
+    }
+    return null;
+  }
+
+  isPlayerInSession(playerId, sessionId) {
+    const session = this.sessions.get(sessionId);
+    return session ? session.players.has(playerId) : false;
   }
 }
 

@@ -1,4 +1,5 @@
 const { GameSession } = require("../models");
+const SessionService = require("./session.service");
 
 class GameService {
   constructor() {
@@ -11,6 +12,9 @@ class GameService {
     const session = new GameSession(masterId, masterName);
     this.sessions.set(session.id, session);
     this.playerSessions.set(masterId, session.id);
+
+    SessionService.registerSession(session);
+
     return session;
   }
 
@@ -63,10 +67,21 @@ class GameService {
       if (session.timeRemaining <= 0) {
         this.endGameByTimeout(sessionId, io);
       } else {
-        this.gameTimers.set(sessionId, setTimeout(tick, 1000));
+        const timeoutId = setTimeout(tick, 1000);
+        this.gameTimers.set(sessionId, timeoutId);
       }
     }
-    this.gameTimers.set(sessionId, setTimeout(tick, 1000));
+
+    const initialTimeoutId = setTimeout(tick, 1000);
+    this.gameTimers.set(sessionId, initialTimeoutId);
+  }
+
+  clearGameTimer(sessionId) {
+    const timer = this.gameTimers.get(sessionId);
+    if (timer) {
+      clearTimeout(timer);
+      this.gameTimers.delete(sessionId);
+    }
   }
 
   endGameByTimeout(sessionId, io) {
@@ -112,7 +127,7 @@ class GameService {
     }, 5000);
   }
 
-  submitAnswer(playerId, answer) {
+  submitAnswer(playerId, answer, io) {
     const sessionId = this.playerSessions.get(playerId);
     const session = this.sessions.get(sessionId);
     const player = session.players.get(playerId);
@@ -197,6 +212,8 @@ class GameService {
   cleanupSession(sessionId) {
     this.clearGameTimer(sessionId);
     this.sessions.delete(sessionId);
+
+    SessionService.sessions.delete(sessionId);
 
     // Remove all players from this session
     for (const [playerId, playerSessionId] of this.playerSessions.entries()) {

@@ -61,10 +61,11 @@ module.exports = (socket, io) => {
       const { sessionId } = data;
       const session = SessionService.endSession(sessionId, socket.id);
 
-      io.to(sessionId).emit("session-ended", { sessionId });
+      GameService.cleanupSession(sessionId);
 
-      // Force all players to leave session room
+      io.to(sessionId).emit("session-ended", { sessionId });
       io.in(sessionId).socketsLeave(sessionId);
+      
     } catch (error) {
       socket.emit("error", { message: error.message });
     }
