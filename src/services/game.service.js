@@ -18,9 +18,14 @@ class GameService {
     return session;
   }
 
-  joinSession(sessionId,playerId, playerName) {
-    const session = this.sessions.get(sessionId);
+  joinSession(sessionId, playerId, playerName) {
+    const normalizedSessionId = sessionId.toLowerCase();
+
+    const session = this.sessions.get(normalizedSessionId);
     if (!session) {
+      console.log(`❌ Session not found: ${sessionId} (looking for: ${normalizedSessionId})`);
+      console.log(`Available sessions:`, Array.from(this.sessions.keys()));
+
       throw new Error("Session not found");
     }
     if (session.status !== "waiting") {
