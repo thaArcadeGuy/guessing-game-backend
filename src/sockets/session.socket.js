@@ -8,7 +8,7 @@ module.exports = (io, socket) => {
   socket.onAny((eventName, ...args) => {
     console.log(`📨 Incoming event: ${eventName}`, args);
   });
-  
+
   socket.on("create-session", (data, callback) => {
     try {
       console.log("🎯 CREATE-SESSION event received on backend");
@@ -64,11 +64,13 @@ module.exports = (io, socket) => {
   socket.on("join-session", (data, callback) => {
     try {
       const { sessionId, playerName } = data;
-      console.log("🎯 JOIN-SESSION event received:", sessionId, playerName);
+      const normalizedSessionId = sessionId.toLowerCase();
 
-      const session = GameService.joinSession(sessionId, socket.id, playerName);
+      console.log("🎯 JOIN-SESSION event received:", normalizedSessionId, playerName);
 
-      socket.join(sessionId);
+      const session = GameService.joinSession(normalizedSessionId, socket.id, playerName);
+
+      socket.join(normalizedSessionId);
 
       // Send response to the joining player
       if (callback) {
@@ -87,7 +89,7 @@ module.exports = (io, socket) => {
       }
 
       // Notify all players in session
-      io.to(sessionId).emit("player-joined", {
+      io.to(normalizedSessionId).emit("player-joined", {
         playerCount: session.getPlayerCount(),
         players: Array.from(session.players.values()).map(player => ({
           id: player.id,
