@@ -140,12 +140,21 @@ module.exports = (io, socket) => {
     }
   });
 
-  socket.on("list-sessions", () => {
+  socket.on("list-sessions", (callback) => {
     try {
       const sessions = SessionService.getAllSessions();
-      socket.emit("sessions-list", { sessions })
+      console.log('📋 Sessions available:', sessions.map(s => s.id));
+
+      if (callback) {
+        callback({ sessions });
+      } else {
+        socket.emit("sessions-list", { sessions })
+      }
     } catch (error) {
-      socket.emit("error", { message: error.message });
+      console.log("Error listing sessions:", error);
+      if (callback) {
+        callback({ error: error.message });
+      }
     }
   })
 }
