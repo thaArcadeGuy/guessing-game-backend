@@ -72,30 +72,36 @@ module.exports = (io, socket) => {
 
       socket.join(normalizedSessionId);
 
+      console.log("Player joined successfully:", playerName);
+      console.log("Total players now:", session.getPlayerCount());
+
+      const playersData = Array.from(session.players.values()).map(player => ({
+        id: player.id,
+        name: player.name,
+        score: player.score,
+        isGameMaster: player.isGameMaster
+      }));
+
       // Send response to the joining player
       safeCallback(callback, {
         session: {
           id: session.id,
           status: session.status,
-          players: Array.from(session.players.values()).map(player => ({
-            id: player.id,
-            name: player.name,
-            score: player.score,
-            isGameMaster: player.isGameMaster
-          }))
+          players: playersData
         }
       });
 
       // Notify all players in session
-      io.to(normalizedSessionId).emit("player-joined", {
+      io.to(normalizedSessionId).emit("session-updated", {
+        type: "player-joined",
+        playerId: socket.id,
+        playerName: playerName,
         playerCount: session.getPlayerCount(),
-        players: Array.from(session.players.values()).map(player => ({
-          id: player.id,
-          name: player.name,
-          score: player.score,
-          isGameMaster: player.isGameMaster
-        }))
+        players: playersData
       });
+
+      console.log(`Broadcasted player-joined to ${session.getPlayerCount()} players`);
+
     } catch (error) {
       console.log("Error joining session:", error);
       safeCallback(callback, { error: error.message });
