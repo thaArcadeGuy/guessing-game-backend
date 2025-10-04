@@ -108,18 +108,31 @@ module.exports = (io, socket) => {
     }
   });
 
-  socket.on("leave-session", (data) => {
+  socket.on("leave-session", (data, callback) => {
     try {
       const { sessionId } = data;
+      const normalizedSessionId = sessionId.toLowerCase();
+
       const session = SessionService.leaveSession(sessionId, socket.id);
 
-      socket.leave(sessionId);
+      socket.leave(normalizedSessionId);
 
-      io.to(sessionId).emit("player-left", {
+      const playersData = Array.from(session.players.values()).map(player => ({
+        id: player.id,
+        name: player.name,
+        score: player.score,
+        isGameMaster: player.isGameMaster
+      }));
+
+      io.to(sessionId).emit("session-updated", {
+        type: "player-left",
         playerId: socket.id,
         playerCount: session.getPlayerCount(),
-        players: session.getPlayersList()
-      })
+        players: playersData
+      });
+
+      safeCallback(callback, { success: true });
+      
     } catch (error) {
       socket.emit("error", { message: error.message });
     }
