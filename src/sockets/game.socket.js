@@ -117,4 +117,30 @@ module.exports = (io, socket) => {
       socket.emit("error", { message: error.message });
     }
   });
+
+  socket.on("chat-message", (data) => {
+    try {
+      const { sessionId, message } = data;
+      const session = GameService.getSession(sessionId);
+
+      if (!session) {
+        socket.emit("error", { message: "Session not found" });
+        return;
+      }
+
+      const player = session.players.get(socket.id);
+      if (!player) {
+        socket.emit("error", { message: "Player not in session " });
+        return;
+      }
+
+      io.to(sessionId).emit("chat-message", {
+        playerId: socket.id,
+        playerName: player.name,
+        message: message
+      })
+    } catch (error) {
+      socket.emit("error", { message: error.message });
+    }
+  })
 }
