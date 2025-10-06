@@ -1,5 +1,11 @@
 const GameService = require("../services/game.service");
 
+function safeCallback(callback, data) {
+  if (callback && typeof callback === "function") {
+    callback(data);
+  }
+}
+
 function validateGameInputs(question, answer) {
   if (!question?.trim() || question.trim().length < 5) {
     throw new Error("Question must be at least 5 characters");
@@ -10,7 +16,7 @@ function validateGameInputs(question, answer) {
 }
 
 module.exports = (io, socket) => {
-  socket.on("start-game", (data) => {
+  socket.on("start-game", (data, callback) => {
     try {
       const { question, answer } = data;
       validateGameInputs(question, answer);
@@ -29,28 +35,38 @@ module.exports = (io, socket) => {
 
       GameService.startGame(sessionId, question, answer, io);
 
+      console.log('✅ Game started successfully');
+      console.log('Question:', question);
+      console.log('Players in session:', session.getPlayerCount());
+
       io.to(sessionId).emit("game-started", {
         question: session.currentQuestion,
         timeRemaining: session.timeRemaining,
         playerCount: session.getPlayerCount()
       });
     } catch (error) {
-      socket.emit("error", { message: error.message });
+      console.log("Error starting game:", error);
+      safeCallback(callback, { error: error.message });
     }
   });
 
-  socket.on("submit-answer", (data) => {
+  socket.on("submit-answer", (data, callback) => {
     try {
+      console.log("SUBMIT-ANSWER event received:", data);
       const { answer } = data;
 
       if (!answer?.trim()) {
         throw new Error("answer cannot be empty")
       }
 
-      GameService.submitAnswer(socket.id, answer, io);
+      const result = GameService.submitAnswer(socket.id, answer, io);
+
+      console.log("Answer processed:", result);
+      safeCallback(callback, { success: true });
 
     } catch (error) {
-      socket.emit("error", { message: error.message });
+      console.log("Error submitting answer:", error);
+      safeCallback(callback, { error: error.message });
     }
   });
 
