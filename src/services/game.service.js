@@ -23,8 +23,8 @@ class GameService {
 
     const session = this.sessions.get(normalizedSessionId);
     if (!session) {
-      console.log(`❌ Session not found: ${sessionId} (looking for: ${normalizedSessionId})`);
-      console.log(`Available sessions:`, Array.from(this.sessions.keys()));
+      console.log("❌ Session not found: ${sessionId} (looking for: ${normalizedSessionId})");
+      console.log("Available sessions:", Array.from(this.sessions.keys()));
 
       throw new Error("Session not found");
     }
@@ -113,10 +113,12 @@ class GameService {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
+    console.log("🏆 Game ended by win - Winner: ${winner.name}, Session: ${sessionId}");
+
     session.status = "ended";
     this.clearGameTimer(sessionId);
 
-    io.to(sessionId).emit("game-ended", {
+    const gameEndData = {
       reason: "winner",
       answer: session.currentAnswer,
       winner: {
@@ -125,7 +127,12 @@ class GameService {
         score: winner.score
       },
       players: this.getPlayersData(session)
-    });
+    };
+
+    console.log("Broadcasting game-ended event");
+    io.to(sessionId).emit("game-ended", gameEndData);
+
+    console.log("Preparing next round in 5 seconds for session: ${sessionId}");
 
     setTimeout(() => {
       this.prepareNextRound(sessionId, io);
@@ -166,7 +173,7 @@ class GameService {
     io.to(playerId).emit("answer-result", {
       correct: false,
       attemptsLeft: 3 - player.attempts,
-      message: player.attempts >= 3 ? "No more attempts!" : `Wrong! ${3 - player.attempts} attempts left`
+      message: player.attempts >= 3 ? "No more attempts!" : "Wrong! ${3 - player.attempts} attempts left"
     })
 
     return { correct: false, attemptsLeft: 3 - player.attempts };
@@ -293,7 +300,7 @@ class GameService {
 
   handlePlayerDisconnect(playerId, io) {
     try {
-      console.log(`🔌 Handling disconnect for player: ${playerId}`);
+      console.log("🔌 Handling disconnect for player: ${playerId}");
       const sessionId = this.playerSessions.get(playerId);
       
       if (!sessionId) {
@@ -312,13 +319,13 @@ class GameService {
       if (player) {
         session.players.delete(playerId);
         this.playerSessions.delete(playerId);
-        console.log(`Removed player ${player.name} from session ${sessionId}`);
+        console.log("Removed player ${player.name} from session ${sessionId}");
       }
 
       // If no players left, cleanup session
       if (session.players.size === 0) {
         this.cleanupSession(sessionId);
-        console.log(`Cleaned up empty session: ${sessionId}`);
+        console.log("Cleaned up empty session: ${sessionId}");
         return;
       }
 
@@ -328,7 +335,7 @@ class GameService {
         if (remainingPlayers.length > 0) {
           remainingPlayers[0].isGameMaster = true;
           session.masterId = remainingPlayers[0].id;
-          console.log(`New game master: ${remainingPlayers[0].name}`);
+          console.log("New game master: ${remainingPlayers[0].name}");
           
           // Notify players about new master
           io.to(sessionId).emit("new-game-master", {
