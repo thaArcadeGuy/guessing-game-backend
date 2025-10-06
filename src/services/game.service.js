@@ -132,7 +132,7 @@ class GameService {
     console.log("Broadcasting game-ended event");
     io.to(sessionId).emit("game-ended", gameEndData);
 
-    console.log("Preparing next round in 5 seconds for session: ${sessionId}");
+    console.log(`Preparing next round in 5 seconds for session: ${sessionId}`);
 
     setTimeout(() => {
       this.prepareNextRound(sessionId, io);
@@ -163,6 +163,8 @@ class GameService {
       player.hasAnswered = true;
       player.addScore(10);
 
+      console.log(`Correct answer! ${player.name} wins this round`);
+
       // End game immediately - winner found!
       this.endGameByWin(sessionId, player, io);
 
@@ -170,22 +172,30 @@ class GameService {
     }
 
     // Wrong Answer - notify the player
+    const attemptsLeft = 3 - player.attempts;
+    console.log(`Wrong answer - ${player.name} has ${attemptsLeft} attempts left`);
+
     io.to(playerId).emit("answer-result", {
       correct: false,
-      attemptsLeft: 3 - player.attempts,
-      message: player.attempts >= 3 ? "No more attempts!" : "Wrong! ${3 - player.attempts} attempts left"
+      attemptsLeft: attemptsLeft,
+      message: player.attempts >= 3 ? "No more attempts!" : `Wrong! ${attemptsLeft} attempts left`
     })
 
-    return { correct: false, attemptsLeft: 3 - player.attempts };
+    return { correct: false, attemptsLeft: attemptsLeft };
   }
 
   prepareNextRound(sessionId, io) {
     const session = this.sessions.get(sessionId);
     if (!session || session.players.size === 0) {
+      console.log(`Cannot prepare next round - session not found: ${sessionId}`);
+      console.log(`Session ${sessionId} has no players - cleaning up`);
       // Session is empty, clean it up
       this.cleanupSession(sessionId);
       return
     }
+
+    console.log(`Preparing next round for session: ${sessionId}`);
+    console.log(`Players remaining: ${session.players.size}`);
 
     // Rotate game master to next player
     const playersArray = Array.from(session.players.values());
@@ -202,6 +212,13 @@ class GameService {
     session.currentQuestion = "";
     session.currentAnswer = "";
     session.timeRemaining = 60;
+
+    // Reset player states for new round
+    playersArray.forEach(player => {
+      player.resetForNewRound();
+    });
+
+    console.log(`Next round ready - New master: ${playersArray[nextMasterIndex].name}`);
 
     // Notify all players about the new game master
     io.to(sessionId).emit("new-round-ready", {

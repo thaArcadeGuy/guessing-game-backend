@@ -12,6 +12,7 @@ class Player {
   resetForNewRound() {
     this.attempts = 0;
     this.hasAnswered = false
+    console.log(`Reset player ${this.name} for new round`);
   }
 
   addScore(points) {
