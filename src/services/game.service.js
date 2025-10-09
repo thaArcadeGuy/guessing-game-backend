@@ -113,7 +113,11 @@ class GameService {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
-    console.log("🏆 Game ended by win - Winner: ${winner.name}, Session: ${sessionId}");
+    console.log(`🏆 Game ended by win - Winner: ${winner.name}, Session: ${sessionId}`);
+    console.log(`📊 Session state before ending:`, {
+        status: session.status,
+        timeRemaining: session.timeRemaining
+    });
 
     session.status = "ended";
     this.clearGameTimer(sessionId);
@@ -121,6 +125,7 @@ class GameService {
     const gameEndData = {
       reason: "winner",
       answer: session.currentAnswer,
+      question: session.currentQuestion,
       winner: {
         id: winner.id,
         name: winner.name,
@@ -148,7 +153,17 @@ class GameService {
       throw new Error("Player or session not found");
     }
 
+    // Add detailed logging to debug state issues
+    console.log(`🎯 Answer submission check:`, {
+        player: player.name,
+        sessionStatus: session.status,
+        timeRemaining: session.timeRemaining,
+        playerAttempts: player.attempts,
+        playerHasAnswered: player.hasAnswered
+    });
+
     if (session.status !== "in-progress") {
+      console.log(`❌ Game is not in progress. Current status: ${session.status}`);
       throw new Error("Game is not in progress");
     }
 
@@ -159,16 +174,29 @@ class GameService {
     player.attempts++;
     const isCorrect = answer.toLowerCase().trim() === session.currentAnswer;
 
+    console.log(`📝 Answer evaluation:`, {
+        player: player.name,
+        submitted: answer,
+        expected: session.currentAnswer,
+        isCorrect: isCorrect,
+        attempts: player.attempts
+    });
+
     if (isCorrect) {
       player.hasAnswered = true;
       player.addScore(10);
 
       console.log(`Correct answer! ${player.name} wins this round`);
+      console.log(`🏆 Ending game immediately for session: ${sessionId}`);
 
       // End game immediately - winner found!
       this.endGameByWin(sessionId, player, io);
 
-      return { correct: true, winner: player };
+      return { 
+        correct: true, 
+        winner: player, 
+        players: this.getPlayersData(session) 
+      };
     }
 
     // Wrong Answer - notify the player
@@ -181,7 +209,11 @@ class GameService {
       message: player.attempts >= 3 ? "No more attempts!" : `Wrong! ${attemptsLeft} attempts left`
     })
 
-    return { correct: false, attemptsLeft: attemptsLeft };
+    return { 
+      correct: false, 
+      attemptsLeft: attemptsLeft, 
+      message: player.attempts >= 3 ? "No more attempts!" : `Wrong! ${attemptsLeft} attempts left` 
+    };
   }
 
   prepareNextRound(sessionId, io) {
@@ -202,6 +234,9 @@ class GameService {
     const currentMasterIndex =playersArray.findIndex(player => player.isGameMaster);
     const nextMasterIndex = (currentMasterIndex + 1) % playersArray.length;
 
+    console.log(`👑 Game master rotation: ${playersArray[currentMasterIndex]?.name} → ${playersArray[nextMasterIndex]?.name}`);
+
+
     // Update game master
     playersArray.forEach((player, index) => {
       player.isGameMaster = index === nextMasterIndex;
@@ -216,9 +251,13 @@ class GameService {
     // Reset player states for new round
     playersArray.forEach(player => {
       player.resetForNewRound();
+      console.log(`🔄 Reset ${player.name}: attempts=${player.attempts}, hasAnswered=${player.hasAnswered}`);
     });
 
     console.log(`Next round ready - New master: ${playersArray[nextMasterIndex].name}`);
+
+    console.log(`📢 Emitting new-round-ready to session: ${sessionId}`);
+    console.log(`👥 Players in room:`, Array.from(io.sockets.adapter.rooms.get(sessionId) || []));
 
     // Notify all players about the new game master
     io.to(sessionId).emit("new-round-ready", {
@@ -228,6 +267,7 @@ class GameService {
       },
       players: this.getPlayersData(session)
     });
+    console.log(`✅ new-round-ready event emitted`);
   }
 
   clearGameTimer(sessionId) {
@@ -382,6 +422,24 @@ class GameService {
       }
     }
     return null;
+  }
+
+  debugSessionState(sessionId) {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+        return { error: "Session not found" };
+    }
+
+    return {
+        sessionId: session.id,
+        status: session.status,
+        currentQuestion: session.currentQuestion,
+        currentAnswer: session.currentAnswer,
+        timeRemaining: session.timeRemaining,
+        masterId: session.masterId,
+        players: this.getPlayersData(session),
+        hasActiveTimer: this.gameTimers.has(sessionId)
+    };
   }
 }
 

@@ -61,12 +61,37 @@ module.exports = (io, socket) => {
 
       const result = GameService.submitAnswer(socket.id, answer, io);
 
-      console.log("Answer processed:", result);
-      safeCallback(callback, { success: true });
+      console.log("✅ Answer processed successfully:", {
+          correct: result.correct,
+          winner: result.winner?.name,
+          attemptsLeft: result.attemptsLeft
+      });
+
+      // Only send success response for wrong answers
+      // For correct answers, the game-ended event will handle the UI update
+      if (!result.correct) {
+          safeCallback(callback, { 
+              success: true, 
+              correct: false,
+              attemptsLeft: result.attemptsLeft,
+              message: result.message
+          });
+      } else {
+          // For correct answers, don't send callback immediately
+          // Let the game-ended event handle the UI transition
+          safeCallback(callback, { 
+              success: true, 
+              correct: true,
+              winner: result.winner
+          });
+      }
 
     } catch (error) {
-      console.log("Error submitting answer:", error);
-      safeCallback(callback, { error: error.message });
+      console.log("Error submitting answer:", error.message);
+      safeCallback(callback, { 
+        error: error.message,
+        success: false 
+      });
     }
   });
 
@@ -158,5 +183,27 @@ module.exports = (io, socket) => {
     } catch (error) {
       socket.emit("error", { message: error.message });
     }
-  })
+  });
+
+  socket.on("debug-session-state", (data, callback) => {
+    try {
+        const { sessionId } = data;
+        const state = GameService.debugSessionState(sessionId);
+        safeCallback(callback, state);
+    } catch (error) {
+        safeCallback(callback, { error: error.message });
+    }
+  });
+
+  socket.on("skip-to-next-round", () => {
+    try {
+      const session = GameService.getSessionByMasterId(socket.id);
+      if (!session) throw new Error("Not a game master");
+      
+      console.log('🔄 Manually skipping to next round for session:', session.id);
+      GameService.prepareNextRound(session.id, io);
+    } catch (error) {
+      socket.emit("error", { message: error.message });
+    }
+  });
 }
